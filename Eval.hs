@@ -4,7 +4,9 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad
 import Numeric (readOct, readHex)
+import Control.Monad.Error
 
+-- Data type for Lisp values
 data LispVal = Atom String
              | List [LispVal]
              | DottedList [LispVal] LispVal
@@ -13,8 +15,10 @@ data LispVal = Atom String
              | Char Char
              | Bool Bool
 
+-- make vals showable
 instance Show LispVal where show = showVal
 
+-- Show values
 showVal :: LispVal -> String
 showVal (String contents) = "\"" ++ contents ++ "\""
 showVal (Atom name)       = name
@@ -22,8 +26,25 @@ showVal (Number contents) = show contents
 showVal (Bool True)       = "#t"
 showVal (Bool False)      = "#f"
 showVal (List contents)   = "(" ++ unwordsList contents ++ ")"
-showVal (DottedList head tail)
-                          = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
+showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
+
+-- Data type for different errors
+data LispError = NumArgs Integer [LispVal]
+               | TypeMismatch String LispVal
+               | Parser ParseError
+               | BadSpecialForm String LispVal
+               | NotFunction String String
+               | UnboundVar String String
+               | Default String
+
+instance Show LispError where show = showError
+
+instance Error LispError where
+     noMsg = Default "An error has occurred"
+     strMsg = Default
+
+-- Type of things that throw errors
+type ThrowsError = Either LispError
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . fmap showVal
@@ -54,7 +75,9 @@ primitives = [("+", numericBinop (+)),
               ("list?", unaryOp listP),
               ("symbol?", unaryOp symbolP),
               ("char?", unaryOp charP),
-              ("string?", unaryOp stringP)]
+              ("string?", unaryOp stringP),
+              ("symbol->string", unaryOp symToStr),
+              ("string->symbol", unaryOp strToSym)]
 
 -- Unary operator helpers
 not' :: LispVal -> LispVal
@@ -81,6 +104,14 @@ charP _        = Bool False
 stringP :: LispVal -> LispVal
 stringP (String _) = Bool True
 stringP _          = Bool False
+
+symToStr :: LispVal -> LispVal
+symToStr (Atom s) = String s
+symToStr _        = error "Expected an Atom"
+
+strToSym :: LispVal -> LispVal
+strToSym (String s) = Atom s
+strToSym _          = error "Expected a string"
 
 -- Apply binary operation to list of parameters
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
