@@ -1,38 +1,34 @@
 module Main where
+
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad
 import Numeric (readOct, readHex)
+import Eval
+import Data.Char
 
 main :: IO ()
-main = do
-  (expr:_) <- getArgs
-  putStrLn $ readExpr expr
-
-data LispVal = Atom String
-             | List [LispVal]
-             | DottedList [LispVal] LispVal
-             | Number Integer
-             | String String
-             | Bool Bool
+main = getArgs >>= print . eval . readExpr . head
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-readExpr :: String -> String
+readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
-  Left err -> "No match: " ++ show err
-  Right val -> "Found value"
+  Left err -> String $ "No match: " ++ show err
+  Right val -> val
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
   <|> parseString
-  <|> parseNumber
+  <|> try parseChar
+  <|> try parseNumber
+  <|> parseBool
   <|> parseQuoted
   <|> do char '('
-       x <- try parseList <|> parseDottedList
-       char ')'
-       return x
+         x <- try parseList <|> parseDottedList
+         char ')'
+         return x
 
 spaces :: Parser ()
 spaces = skipMany1 space
@@ -44,6 +40,14 @@ parseString = do
   char '"'
   return $ String x
 
+parseChar :: Parser LispVal
+parseChar = do string "#\\"
+               s <- many1 letter
+               return $ case (fmap toLower s) of
+                      "space" -> Char ' '
+                      "newline" -> Char '\n'
+                      [x] -> Char x
+
 escapedChars :: Parser Char
 escapedChars = do
   char '\\'
@@ -54,6 +58,13 @@ escapedChars = do
     'n'  -> '\n'
     't'  -> '\t'
     'r'  -> '\r'
+
+parseBool :: Parser LispVal
+parseBool = do char '#'
+               c <- oneOf "tf"
+               return $ case c of
+                      't' -> Bool True
+                      'f' -> Bool False
 
 parseAtom :: Parser LispVal
 parseAtom = do
