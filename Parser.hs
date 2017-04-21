@@ -11,8 +11,8 @@ import Control.Monad.Except
 main :: IO ()
 main = do
   args <- getArgs
-  evaled <- return $ liftM show $ readExpr (head args) >>= eval
-  putStrLn $ extractValue $ trapError evaled
+  evaled <- return . liftM show $ readExpr (head args) >>= eval
+  putStrLn . extractValue $ trapError evaled
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
