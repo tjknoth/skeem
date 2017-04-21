@@ -6,17 +6,21 @@ import Control.Monad
 import Numeric (readOct, readHex)
 import Eval
 import Data.Char
+import Control.Monad.Error
 
 main :: IO ()
-main = getArgs >>= print . eval . readExpr . head
+main = do
+  args <- getArgs
+  evaled <- return $ liftM show $ readExpr (head args) >>= eval
+  putStrLn $ extractValue $ trapError evaled
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-readExpr :: String -> LispVal
+readExpr :: String -> ThrowsError LispVal
 readExpr input = case parse parseExpr "lisp" input of
-  Left err -> String $ "No match: " ++ show err
-  Right val -> val
+  Left err -> throwError $ Parser err
+  Right val -> return val
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
