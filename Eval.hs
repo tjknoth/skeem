@@ -4,7 +4,7 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad
 import Numeric (readOct, readHex)
-import Control.Monad.Error
+import Control.Monad.Except
 
 -- Data type for Lisp values
 data LispVal = Atom String
@@ -46,10 +46,6 @@ showError (TypeMismatch expected found) = "Invalid type: expected " ++ expected 
 showError (Parser parseErr)             = "Parse error at " ++ show parseErr
 
 instance Show LispError where show = showError
-
-instance Error LispError where
-     noMsg = Default "An error has occurred"
-     strMsg = Default
 
 -- Type of things that throw errors
 type ThrowsError = Either LispError

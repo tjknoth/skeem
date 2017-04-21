@@ -6,7 +6,7 @@ import Control.Monad
 import Numeric (readOct, readHex)
 import Eval
 import Data.Char
-import Control.Monad.Error
+import Control.Monad.Except
 
 main :: IO ()
 main = do
