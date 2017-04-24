@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Main where
+module Parser where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
@@ -10,19 +10,8 @@ import Eval
 import Data.Char
 import Control.Monad.Except
 
-main :: IO ()
-main = do
-  args <- getArgs
-  evaled <- return . liftM show $ readExpr (head args) >>= eval
-  putStrLn . extractValue $ trapError evaled
-
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
-
-readExpr :: String -> ThrowsError LispVal
-readExpr input = case parse parseExpr "lisp" input of
-  Left err -> throwError $ Parser err
-  Right val -> return val
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom

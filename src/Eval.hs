@@ -2,11 +2,10 @@
 
 module Eval where
 
-import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad
-import Numeric (readOct, readHex)
 import Control.Monad.Except
+import Text.ParserCombinators.Parsec hiding (spaces)
 
 -- Data type supporting equality
 data Unpacker = forall a. Eq a => AnyUnpacker (LispVal -> ThrowsError a)
@@ -76,7 +75,6 @@ eval (List [Atom "if", pred, conseq, alt]) = do
     Bool False -> eval alt
     Bool True  -> eval conseq
     otherwise  -> throwError $ TypeMismatch "boolean" result
-eval (List (Atom "cond" : clauses)) = 
 eval (List (Atom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
