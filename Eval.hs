@@ -76,6 +76,7 @@ eval (List [Atom "if", pred, conseq, alt]) = do
     Bool False -> eval alt
     Bool True  -> eval conseq
     otherwise  -> throwError $ TypeMismatch "boolean" result
+eval (List (Atom "cond" : clauses)) = 
 eval (List (Atom func : args)) = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
@@ -120,7 +121,9 @@ primitives = [("+", numericBinop (+)),
               ("cons", cons),
               ("eq?", eqv),
               ("eqv?", eqv),
-              ("equal?", equal)]
+              ("equal?", equal),
+              ("string?", isString),
+              ("string-length", stringLength)]
 
 -- Unary operator helpers
 not' :: LispVal -> LispVal
@@ -249,10 +252,29 @@ unpackEquals arg1 arg2 (AnyUnpacker unpacker) =
      return $ unpacked1 == unpacked2
   `catchError` (const $ return False)
 
+-- Checks for weakly-typed equality
 equal :: [LispVal] -> ThrowsError LispVal
+equal [(DottedList xs x), (DottedList ys y)] = equal [List $ xs ++ [x], List $ ys ++ [y]]
+equal [(List xs), (List ys)] = return . Bool $ (length xs == length ys) &&
+                                               (all equalPair $ zip xs ys)
+      where equalPair (x,y) = case equal [x,y] of
+                                Left err -> False
+                                Right (Bool val) -> val
 equal [arg1, arg2] = do
   primitiveEquals <- liftM or $ mapM (unpackEquals arg1 arg2)
                      [AnyUnpacker unpackNum, AnyUnpacker unpackStr, AnyUnpacker unpackBool]
   eqvEquals <- eqv [arg1, arg2]
   return . Bool $ (primitiveEquals || let (Bool x) = eqvEquals in x)
 equal badArgList = throwError $ NumArgs 2 badArgList
+
+
+-- String functions
+isString :: [LispVal] -> ThrowsError LispVal
+isString [(String s)] = return $ Bool True
+isString [x]          = return $ Bool False
+isString badArgs    = throwError $ NumArgs 1 badArgs
+
+stringLength :: [LispVal] -> ThrowsError LispVal
+stringLength [(String s)] = (return . Number) . toInteger $ length s
+stringLength [x]          = throwError $ TypeMismatch "string" x
+stringLength badArgs      = throwError $ NumArgs 1 badArgs
