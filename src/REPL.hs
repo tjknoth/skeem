@@ -13,8 +13,10 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 main :: IO ()
 main = do
   args <- getArgs
-  evaled <- return . liftM show $ readExpr (head args) >>= eval
-  putStrLn . extractValue $ trapError evaled
+  case length args of
+    0 -> runRepl
+    1 -> evalAndPrint $ head args
+    otherwise -> putStrLn "Program only takes 0 or 1 argument."
 
 readExpr :: String -> ThrowsError LispVal
 readExpr input = case parse parseExpr "lisp" input of
@@ -39,3 +41,6 @@ until_ pred prompt action = do
   if pred result
     then return ()
     else action result >> until_ pred prompt action
+
+runRepl :: IO ()
+runRepl = until_ (== "quit") (readPrompt "lisp>> ") evalAndPrint

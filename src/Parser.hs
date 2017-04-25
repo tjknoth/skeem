@@ -100,7 +100,7 @@ parseBinary = do
   (return . Number . binToInt) n
 
 binToInt :: String -> Integer
-binToInt s = sum $ map (\(i,x) -> i*(2^x)) $ zip [0..] $ map p (reverse s)
+binToInt s = sum $ map (\(i,x) -> i*(2^x)) $ zip [0..] $ fmap p (reverse s)
   where p '0' = 0
         p '1' = 1
 
@@ -119,7 +119,7 @@ rd f s = fst $ head (f s)
 parseList :: Parser LispVal
 parseList = fmap List $ sepBy parseExpr spaces
 
-parseDottedList :: Parser LispVal
+parseList :: Parser LispVal
 parseDottedList = do
     head <- endBy parseExpr spaces
     tail <- char '.' >> spaces >> parseExpr

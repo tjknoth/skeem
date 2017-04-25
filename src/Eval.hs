@@ -6,6 +6,9 @@ import System.Environment
 import Control.Monad
 import Control.Monad.Except
 import Text.ParserCombinators.Parsec hiding (spaces)
+import Data.IORef
+
+type Env = IORef [(String, IORef LispVal)]
 
 -- Data type supporting equality
 data Unpacker = forall a. Eq a => AnyUnpacker (LispVal -> ThrowsError a)
