@@ -8,8 +8,6 @@ import Control.Monad.Except
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Data.IORef
 
-type Env = IORef [(String, IORef LispVal)]
-
 -- Data type supporting equality
 data Unpacker = forall a. Eq a => AnyUnpacker (LispVal -> ThrowsError a)
 
@@ -62,6 +60,19 @@ trapError action = catchError action (return . show)
 
 extractValue :: ThrowsError a -> a
 extractValue (Right val) = val
+
+-- Environment
+
+type Env = IORef [(String, IORef LispVal)]
+
+nullEnv :: IO Env
+nullEnv = newIORef []
+
+type IOThrowsError = ErrorT LispError IO
+
+liftThrows :: ThrowsError a -> IOThrowsError a
+liftThrows (Left err) = throwError err
+liftThrows (Right val) = return val
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . fmap showVal
